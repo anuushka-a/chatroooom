@@ -1,15 +1,49 @@
 <?php
-/*
-Author: Muhammad Abba Gana
-Website: www.guidetricks.blogspot.com
-*/
+session_start ();
+function loginForm() {
+    echo '
+	<div class="form-group">
+	<th class="nav" align="center"><img src="images/logo.jpg" width="200" height="150"></th>
+	<strong><marquee behavior="alternate">WELCOME TO COMPUTER SCIENCE DEPARTMENT F.C.E - YOLA CHAT SITE</marquee></span></font></div></strong>
+	</br></br><a href="../choose.php">Goto Home Page</a>
+		<div id="loginform">
+			<form action="index.php" method="post">
+			<h1>Live Chat</h1><hr/>
+				<label for="name">Please Enter Your Name To Continue</label>
+				<input type="text" name="name" id="name" class="form-control" placeholder="Enter Your Name" value="'.$_SESSION['fullname'].'"/>
+				<input type="submit" class="btn btn-default" name="enter" id="enter" value="Enter" />
+			</form>
+		</div>
+	</div>
+   ';
+}
+ 
+if (isset ( $_POST ['enter'] )) {
+    if ($_POST ['name'] != "") {
+        $_SESSION ['name'] = stripslashes ( htmlspecialchars ( $_POST ['name'] ) );
+        $cb = fopen ( "log.html", 'a' );
+        fwrite ( $cb, "<div class='msgln'><i>User " . $_SESSION ['name'] . " has joined the chat.</i><br></div>" );
+        fclose ( $cb );
+    } else {
+        echo '<span class="error">Please Enter a Name</span>';
+    }
+}
+ 
+if (isset ( $_GET ['logout'] )) {
+    $cb = fopen ( "log.html", 'a' );
+    fwrite ( $cb, "<div class='msgln'><i>User " . $_SESSION ['name'] . " has left the chat.</i><br></div>" );
+    fclose ( $cb );
+    // session_destroy ();
+    header ( "Location: index.php" );
+}
 ?>
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8">
-<title>Login</title>
-<link rel="stylesheet" href="css/login.css" />
+	<title>Real-Time Chat Application in PHP </title>
+	<link rel="stylesheet" href="css/style.css">
+	<link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
+	<script type="text/javascript" src="js/jquery.min.js"></script>
 </head>
 <!--
 		*******************************************************************************
@@ -35,44 +69,68 @@ Website: www.guidetricks.blogspot.com
 		*******************************************************************************
 	-->
 <body>
-<center>
-<div class="form-group">
 <?php
-	require('db.php');
-	session_start();
-    // If form submitted, insert values into the database.
-    if (isset($_POST['username'])){
-        $username = $_POST['username'];
-        $pss = $_POST['pss'];
-		$username = stripslashes($username);
-		$username = mysqli_real_escape_string($conn,$username);
-		$pss = stripslashes($pss);
-		$pss = mysqli_real_escape_string($conn,$pss);
-	//Checking is user existing in the database or not
-        $query = "SELECT * FROM `users` WHERE username='$username' and pss='$pss'";
-		$result = mysqli_query($conn,$query) or die(mysqli_error($conn));
-		$rows = mysqli_num_rows($result);
-		$row = mysqli_fetch_array($result);
-        if($rows==1){
-			$_SESSION['username'] = $username;
-			$_SESSION['fullname'] = $row['fullname'];
-			header("Location: choose.php"); // Redirect user to index.php
-            }else{
-				echo "<div class='form'><h3>Username or password is incorrect.</h3><br/>Click here to <a href='index.php'>Login</a></div>";
-				}
-    }else{
+	if (! isset ( $_SESSION ['name'] )) {
+	loginForm ();
+	} else {
 ?>
-<div class="form">
-<h1>Log In</h1>
-<form action="" method="post" name="login">
-<input type="number" name="username" placeholder="registration number" required />
-<input type="pss" name="pss" placeholder="Password" required />
-<input name="submit" type="submit" value="Login" />
+<div id="wrapper">
+	<div id="menu">
+	<h1>Live Chat!</h1><hr/>
+		<p class="welcome"><b>HI - <a><?php echo $_SESSION['name']; ?></a></b></p>
+		<p class="logout"><a id="exit" href="#" class="btn btn-default">Exit Live Chat</a></p>
+	<div style="clear: both"></div>
+	</div>
+	<div id="chatbox">
+	<?php
+		if (file_exists ( "log.html" ) && filesize ( "log.html" ) > 0) {
+		$handle = fopen ( "log.html", "r" );
+		$contents = fread ( $handle, filesize ( "log.html" ) );
+		fclose ( $handle );
+
+		echo $contents;
+		}
+	?>
+	</div>
+<form name="message" action="">
+	<input name="usermsg" class="form-control" type="text" id="usermsg" placeholder="Create A Message" />
+	<input name="submitmsg" class="btn btn-default" type="submit" id="submitmsg" value="Send" />
 </form>
-<p>Not registered yet? <a href='registration.php'>Register Here</a></p>
-<p align="right">Forgot Password? Click <a href="#" onClick="MyWindow=window.open('pwordrecover.php','MyWindow','toolbar=no,location=no,directories=yes,status=yes,menubar=yes,scrollbars=yes,resizable=yes,width=300,height=250'); return false;">Here</a></span></p>
 </div>
-<?php } ?>
+<script type="text/javascript">
+$(document).ready(function(){
+});
+$(document).ready(function(){
+    $("#exit").click(function(){
+        var exit = confirm("Are You Sure You Want To Leave This Page?");
+        if(exit==true){window.location = 'index.php?logout=true';}     
+    });
+});
+$("#submitmsg").click(function(){
+        var clientmsg = $("#usermsg").val();
+        $.post("post.php", {text: clientmsg});             
+        $("#usermsg").attr("value", "");
+        loadLog;
+    return false;
+});
+function loadLog(){    
+    var oldscrollHeight = $("#chatbox").attr("scrollHeight") - 20;
+    $.ajax({
+        url: "log.html",
+        cache: false,
+        success: function(html){       
+            $("#chatbox").html(html);       
+            var newscrollHeight = $("#chatbox").attr("scrollHeight") - 20;
+            if(newscrollHeight > oldscrollHeight){
+                $("#chatbox").animate({ scrollTop: newscrollHeight }, 'normal');
+            }              
+        },
+    });
+}
+setInterval (loadLog, 2500);
+</script>
+<?php
+}
+?>
 </body>
-<br><br><br><br>
 </html>
